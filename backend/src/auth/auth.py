@@ -1,13 +1,14 @@
+
 import json
-from flask import request, _request_ctx_stack
+from flask import request, _request_ctx_stack, abort
 from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
 
 
-AUTH0_DOMAIN = 'udacity-fsnd.auth0.com'
+AUTH0_DOMAIN = 'habidoyefsnd.us.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = 'dev'
+API_AUDIENCE = 'coffeeshop'
 
 ## AuthError Exception
 '''
@@ -31,7 +32,20 @@ class AuthError(Exception):
     return the token part of the header
 '''
 def get_token_auth_header():
-   raise Exception('Not Implemented')
+    # Upack the request header
+    if 'Authorization' not in request.headers:
+        abort(401)
+    
+    auth_header = request.headers['Authorization']
+    header_part = auth_header.split(' ')
+
+    if len(header_part) != 2:
+        abort(401)
+    elif header_part[0].lower() != 'bearer':
+        abort(401)
+    return header_part[1]
+
+#    raise Exception('Not Implemented')
 
 '''
 @TODO implement check_permissions(permission, payload) method
