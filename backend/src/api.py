@@ -1,4 +1,4 @@
-# from crypt import methods
+
 import os
 from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
@@ -13,7 +13,6 @@ setup_db(app)
 CORS(app)
 
 '''
-@TODO uncomment the following line to initialize the datbase
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 !! Running this funciton will add one
@@ -22,7 +21,7 @@ db_drop_and_create_all()
 
 # ROUTES
 '''
-@TODO implement endpoint
+implement endpoint
     GET /drinks
         it should be a public endpoint
         it should contain only the drink.short() data representation
@@ -42,7 +41,7 @@ def get_drinks():
         abort(404)
 
 '''
-@TODO implement endpoint
+implement endpoint
     GET /drinks-detail
         it should require the 'get:drinks-detail' permission
         it should contain the drink.long() data representation
@@ -65,7 +64,7 @@ def get_drinks_detail(jwt):
         abort(404)
 
 '''
-@TODO implement endpoint
+implement endpoint
     POST /drinks
         it should create a new row in the drinks table
         it should require the 'post:drinks' permission
@@ -79,20 +78,25 @@ def create_drink(jwt):
 
     body = request.get_json()
 
-    title = body.get('title')
-    recipe = json.dumps(body.get('recipe'))
+    title = body.get('title', None)
+    recipe = json.dumps(body.get('recipe', None))
     
 
     print(title)
+    print(type(title))
+    if title is None and recipe is None:
+        abort(400)
+    try:
+        newdrink = Drink(title=title, recipe=recipe)
+        newdrink.insert()
+        
+        return jsonify({
+            'success': True,
+            'drinks': [drink.long() for drink in Drink.query.all() ]
 
-    newdrink = Drink(title=title, recipe=recipe)
-    newdrink.insert()
-    
-    return jsonify({
-        'success': True,
-        'drinks': [drink.long() for drink in Drink.query.all() ]
-
-    })
+        })
+    except:
+        abort(422)
     
 
 '''
@@ -111,7 +115,7 @@ def create_drink(jwt):
 def update_drinks_detail(jwt, drink_id):
     body = request.get_json()
     title = body.get('title', None)
-    recipe = body.get('recipe', None)
+    recipe = json.dumps(body.get('recipe', None))
 
     getdrink = Drink.query.filter(Drink.id == drink_id).one_or_none()
     if getdrink is None:
@@ -119,11 +123,9 @@ def update_drinks_detail(jwt, drink_id):
 
     if title is None and recipe is None:
         abort(403)
-    elif title is None:
-        getdrink.recipe = recipe
-    elif recipe is None:
-        getdrink.title = title
-
+    
+    getdrink.title = title
+    getdrink.recipe = recipe
     getdrink.update()
 
     # GET THE REMAINING DRINKS
@@ -178,7 +180,7 @@ def unprocessable(error):
 
 
 '''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
+implement error handlers using the @app.errorhandler(error) decorator
     each error handler should return (with approprate messages):
              jsonify({
                     "success": False,
@@ -192,15 +194,33 @@ def unprocessable(error):
     return jsonify({
         "success": False,
         "error": 404,
-        "message": "unprocessable"
+        "message": "resource not found"
     }), 404
+
+@app.errorhandler(400)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 400,
+        "message": "bad request"
+    }), 404
+
+@app.errorhandler(500)
+def server_error(error):
+    return jsonify({
+        'success': False,
+        'error': 500,
+        'message': 'Internal Server Error'
+    }), 500
+
 '''
-@TODO implement error handler for 404
+implement error handler for AuthError
     error handler should conform to general task above
 '''
-
-
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above
-'''
+@app.errorhandler(AuthError)
+def not_authenticated(auth_error):
+    return jsonify({
+        "success": False,
+        "error": auth_error.status_code,
+        "message": auth_error.error
+    }), auth_error.status_code
